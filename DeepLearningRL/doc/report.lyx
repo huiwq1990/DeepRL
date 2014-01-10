@@ -1,0 +1,607 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass IEEEtran
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 2
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Function Approximation in Reinforcement Learning
+\end_layout
+
+\begin_layout Author
+Greg Maslov <maslov@cs.unc.edu>
+\end_layout
+
+\begin_layout Abstract
+I discuss the background and motivation for the Neural Fitted Q Iteration
+ algorithm, evaluate my implementation on a standard benchmark, and discuss
+ future work.
+\end_layout
+
+\begin_layout Abstract
+\begin_inset FormulaMacro
+\newcommand{\argmax}{\operatorname*{argmax}}
+{\mathrm{argmax}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+I'm always on the lookout for ways to progress towards stronger AI.
+ Reinforcement learning would be a great way to make robots do what we want
+ --- if only it worked! Unfortunately designing and training RL systems
+ tends to be at least as difficult as solving the problem more directly.
+ Part of the difficulty lies in finding a good representation for the Q
+ function, policy, and/or state transition function (depending on your flavour
+ of RL).
+ Multilayer Perceptrons have been used as function approximators to this
+ end, but that model comes with its own set of intractable difficulties.
+ Neural Fitted Q Iteration addresses some of these.
+\end_layout
+
+\begin_layout Standard
+Deep learning architectures are a relatively recent development in machine
+ learning which shows great promise 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Bengio2009"
+
+\end_inset
+
+.
+ Their similarity to MLP models naturally suggests that some of this success
+ could also be applied to reinforcement learning.
+ 
+\end_layout
+
+\begin_layout Standard
+The goal of this project was to investigate the application of deep belief
+ networks (DBNs) in place of MLPs as the Q function approximator, building
+ on Abtahi's work
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Abtahi2011"
+
+\end_inset
+
+.
+ Unfortunately I was only able to get as far as implementing NFQ on a plain
+ MLP, without any deep structure, pretraining, or other bells and whistles.
+\end_layout
+
+\begin_layout Section
+Background
+\end_layout
+
+\begin_layout Subsection
+Q Learning
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+Q(s,a)\leftarrow(1-\alpha)Q(s,a)+\alpha\left[R(s')+\gamma\max_{a'}Q(s',a')\right]\label{eq:q-update}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:q-update"
+
+\end_inset
+
+ is the well-known update rule for Q-learning.
+ The function 
+\begin_inset Formula $Q(s,a)$
+\end_inset
+
+ represents the expected utility (total discounted future reward) of taking
+ an action 
+\begin_inset Formula $a$
+\end_inset
+
+ in state 
+\begin_inset Formula $s$
+\end_inset
+
+.
+ If the values of 
+\begin_inset Formula $Q$
+\end_inset
+
+ are accurate, then an optimal policy 
+\begin_inset Formula $\pi^{*}$
+\end_inset
+
+ is to take the action with maximum 
+\begin_inset Formula $Q$
+\end_inset
+
+-value in each state.
+\begin_inset Formula 
+\[
+\pi^{*}(s)=\argmax_{a}Q^{*}(s,a)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Applying the update rule whenever a new reward is received may cause the
+ estimated 
+\begin_inset Formula $Q$
+\end_inset
+
+ to eventually converge to the true 
+\begin_inset Formula $Q^{*}$
+\end_inset
+
+, depending on the policy being followed.
+ Finding a policy that effectively balances exploration with exploitation
+ in a complex environment is an open problem.
+\end_layout
+
+\begin_layout Standard
+Besides that difficulty, there is also the question of how to store 
+\begin_inset Formula $Q$
+\end_inset
+
+-values in a compact way that still allows for efficient updates.
+ With a small discrete state and action space, there is no problem simply
+ keeping a table of values.
+ Alas, most interesting robotics tasks take place in the high-dimensional,
+ continuous state and action spaces that characterize the real world.
+ 
+\end_layout
+
+\begin_layout Subsection
+Multilayer Perceptron
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename figures/ann.jpg
+	width 50col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption
+
+\begin_layout Plain Layout
+Multilayer perceptron.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The multilayer perceptron (MLP) is the quintessential feedforward neural
+ network architecture.
+ Each node in the network applies weights, bias, and a nonlinearity (often
+ a sigmoidal function) to the outputs of the previous layer.
+ The network's entire topology and weights define a continuous vector-valued
+ function of a vector, well-suited to representing 
+\begin_inset Formula $Q$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+With a differentiable nonlinearity, the parameters of the entire network
+ can be modified using gradient descent to bring the output closer to a
+ desired value for a given input.
+ This is a natural way to implement the Q learning update rule.
+ However, this naïve approach does not work well in practice, for several
+ different reasons.
+\end_layout
+
+\begin_layout Subsubsection
+Combinatorial Explosion
+\end_layout
+
+\begin_layout Standard
+Firstly, it must be noted that an MLP with one layer is merely a modified
+ linear transformation of the inputs, and cannot represent complicated functions
+ (as all but the most trivial of 
+\begin_inset Formula $Q$
+\end_inset
+
+ functions are).
+ An MLP with two layers can represent any smooth function, and an MLP with
+ three or more layers can, in theory, represent any function with a finite
+ number of discontinuities.
+\end_layout
+
+\begin_layout Standard
+This sounds great, but there is an unfortunate tradeoff hidden in the assumption
+s behind these theoretical results.
+ If a 
+\begin_inset Formula $Q$
+\end_inset
+
+ function has many 
+\begin_inset Quotes eld
+\end_inset
+
+features
+\begin_inset Quotes erd
+\end_inset
+
+ -- or worse, is periodic -- then a two-layer MLP may require a truly excessive
+ number of nodes to represent it.
+ This is analogous to the ability, in digital electronics, of being able
+ to represent any function of Boolean logic with a sufficiently large 2-layer
+ AND-OR network.
+ But the more nodes there are, the more weights need to be learned (going
+ as the square), and the worse the performance, and the greater the danger
+ of overfitting.
+\end_layout
+
+\begin_layout Subsubsection
+Local Minima
+\end_layout
+
+\begin_layout Standard
+On the other hand, a network with more layers can compactly represent complicate
+d functions by using earlier layers to compute useful intermediate transformatio
+ns of the input.
+ But remember that the network is being trained using gradient descent;
+ the deeper back into the network it goes, the smaller the gradients become
+ (due to fan-out), and the slower the training process becomes.
+ There are methods of mitigating this effect (such as 
+\shape smallcaps
+Rprop
+\shape default
+
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Riedmiller1994"
+
+\end_inset
+
+), but the more fundamental problem is that the cost landscape of the network
+ becomes vastly more complex as layers are added.
+ That is, it tends to acquire a great deal of local minima, which become
+ more and more difficult to escape.
+ An MLP with one layer is already a non-convex optimization problem -- adding
+ more makes the convergence and optimality situation very bad, very fast.
+\end_layout
+
+\begin_layout Standard
+There are clever methods of attacking this type of thorny optimization problem:
+ stochastic gradient descent, simulated annealing, genetic algorithms, and
+ various other metaheuristics.
+ But the application of these methods tends to be something of a black art.
+\end_layout
+
+\begin_layout Subsubsection
+Nonlocality
+\end_layout
+
+\begin_layout Standard
+Finally, a third problem is that the 
+\begin_inset Formula $Q$
+\end_inset
+
+ update rule demands a local change to the estimated function, but any modificat
+ion to the weights of a neural network, particularly in the layers close
+ to the input, is necessarily a global change.
+ And the deeper the network is, the less predictable the effects of a weight
+ change on distant 
+\begin_inset Formula $Q$
+\end_inset
+
+-values will be.
+\end_layout
+
+\begin_layout Standard
+Now in some sense this is desirable.
+ The network is after all supposed to be storing the shape of 
+\begin_inset Formula $Q$
+\end_inset
+
+ in some compressed form, more efficiently than a simple table.
+ These global changes are then called generalization, and can be a good
+ thing.
+\end_layout
+
+\begin_layout Standard
+Unfortunately, there is nothing forcing the network to make correct, sensible,
+ or reasonable generalizations.
+ Similar 
+\begin_inset Formula $Q$
+\end_inset
+
+ functions are nearby each other in the parameter space of the network,
+ but the relationship between vectors in this space and inferences in the
+ task domain is likely to be an intractable mystery.
+\end_layout
+
+\begin_layout Subsection
+Neural Fitted Q Iteration
+\end_layout
+
+\begin_layout Standard
+Neural Fitted Q Iteration (NFQ) is a conceptually simple technique introduced
+ by Riedmiller 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Riedmiller2005"
+
+\end_inset
+
+ in 2005 to address the tendency of MLPs to 
+\begin_inset Quotes eld
+\end_inset
+
+forget
+\begin_inset Quotes erd
+\end_inset
+
+ earlier training when too much time is spent in a limited region of the
+ state space.
+\end_layout
+
+\begin_layout Standard
+The idea is simply to store experiences 
+\begin_inset Formula $(s,a,s',R)$
+\end_inset
+
+ in a list during each RL episode while following a greedy policy, then
+ iteratively training on all of them in a batch at the end of an episode.
+ This has two beneficial effects: first, the change from single updates
+ to batch updates allows the use of a more sophisticated variation on gradient
+ descent; namely, 
+\shape smallcaps
+Rprop
+\shape default
+, which is faster and far less sensitive to learning rate and batch size.
+\end_layout
+
+\begin_layout Standard
+Second, this method directly addresses the problem of nonlocal updates and
+ generalization described above.
+ The effect of including earlier training pairs in the batch is to 
+\emph on
+constrain
+\emph default
+ the direction that generalization can go in, to only directions which do
+ not disrupt the other 
+\begin_inset Formula $Q$
+\end_inset
+
+ values in the training set.
+\end_layout
+
+\begin_layout Section
+Results
+\end_layout
+
+\begin_layout Standard
+I used Python2 and the Theano, RL-Glue, and RL-Library libraries to implement
+ NFQ+
+\shape smallcaps
+Rprop
+\shape default
+ on the CartPole balancing task benchmark.
+ I used a one-hidden-layer, tanh-activation MLP with 5 hidden nodes.
+ My agent converges to a successful policy after about 200-300 epochs.
+ This result roughly matches that obtained by 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Riedmiller2005"
+
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Itemize
+Demo/results video:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+\begin_inset CommandInset href
+LatexCommand href
+name "http://www.youtube.com/watch?v=upoDIFzAets"
+target "http://www.youtube.com/watch?v=upoDIFzAets"
+
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Source code:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+\begin_inset CommandInset href
+LatexCommand href
+name "https://github.com/gmaslov/rl-experiments"
+target "https://github.com/gmaslov/rl-experiments"
+
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\begin_layout Section
+Future Work
+\end_layout
+
+\begin_layout Standard
+Unfortunately, I did not have time this semester to investigate a DBN
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Abtahi2011"
+
+\end_inset
+
+, M-DBN
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Pape2011"
+
+\end_inset
+
+, or autoencoder
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Lange2010"
+
+\end_inset
+
+ 
+\begin_inset Formula $Q$
+\end_inset
+
+-representation, nor any method of active learning.
+\end_layout
+
+\begin_layout Standard
+The major difficulty that NFQ has, whether operating on an MLP or a DBN
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+as in 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Abtahi2011"
+
+\end_inset
+
+; note that with no unsupervised pretraining a DBN is equivalent to an MLP.
+\end_layout
+
+\end_inset
+
+, is the heavily unbalanced distribution of states that arises from following
+ a greedy policy.
+ Furthermore, a random policy is completely ineffective for exploration
+ in more interesting environments.
+ That's why I believe future research in this area should focus on directed
+ exploration and active learning.
+\end_layout
+
+\begin_layout Standard
+I imagine that there must be some way to use the fact that a DBN is a generative
+ model to create a model-based active learning scheme.
+ Possibly inspired by RMAX or its variations
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Szita2010"
+
+\end_inset
+
+.
+ I haven't been able to come up with anything, though.
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset bibtex
+LatexCommand bibtex
+bibfiles "/home/maslov/Mendeley/library"
+options "ieeetr"
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document

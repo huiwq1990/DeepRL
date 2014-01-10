@@ -1,0 +1,194 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\begin_preamble
+\usepackage{savetrees}
+\end_preamble
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Robotics Project Proposal
+\end_layout
+
+\begin_layout Author
+Greg Maslov <maslov@cs.unc.edu>
+\end_layout
+
+\begin_layout Section*
+Objective
+\end_layout
+
+\begin_layout Standard
+I'd like to investigate the use of Deep Belief Networks (DBNs) 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Hinton2006"
+
+\end_inset
+
+ for online reinforcement learning in the robotics domain.
+ The deep learning paradigm stands in contrast to more usual backpropagation-typ
+e neural networks by focusing on the intermediate representations ocurring
+ between layers.
+ DBNs have been successfully applied to a great variety of tasks 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Bengio2009"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Section*
+Method
+\end_layout
+
+\begin_layout Standard
+I've found one paper 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Abtahi2011"
+
+\end_inset
+
+ which describes the use of a DBN as the function approximator in Neural
+ Fitted Q Iteration 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Riedmiller2005"
+
+\end_inset
+
+ on a standard reinforcement learning benchmark problem (Mountain Car 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Dutech2005"
+
+\end_inset
+
+).
+ The main problem the authors encounter is that the network becomes biased
+ towards the regions of the state space covered in the initial pre-training
+ step.
+ Since the trajectories used for pre-training come from a random policy,
+ this leads to poor performance on problems (such as Mountain Car, and most
+ real-world problems) where important regions of the state space are unlikely
+ to be reached by a random walk.
+\end_layout
+
+\begin_layout Standard
+I'd like to pursue two approaches to improving these results.
+ The first is to try using an M-DBN (Modular DBN) architecture 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Pape2011"
+
+\end_inset
+
+, which is designed to prevent 
+\begin_inset Quotes eld
+\end_inset
+
+forgetting
+\begin_inset Quotes erd
+\end_inset
+
+ of earlier training by creating separate modules within the network which
+ each specialize on a region of the sample space.
+ This may help address the training bias problem.
+\end_layout
+
+\begin_layout Standard
+Secondly, it may be possible to exploit the fact that a DBN is a generative
+ model to create a more effective exploration strategy than a random walk.
+ I'm still thinking about this.
+\end_layout
+
+\begin_layout Section*
+Evaluation
+\end_layout
+
+\begin_layout Standard
+The algorithms will be evaluated on some standard benchmark tasks: Mountain
+ Car, Puddle World, and Cart Pole 
+\begin_inset CommandInset citation
+LatexCommand cite
+key "Dutech2005"
+
+\end_inset
+
+.
+ If performance is good, I may consider a more difficult task.
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset bibtex
+LatexCommand bibtex
+bibfiles "/home/maslov/Mendeley/library"
+options "unsrt"
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
